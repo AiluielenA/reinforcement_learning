@@ -11,3 +11,5 @@ homework_2/Assignment 2/assignment2.ipynb
 homework_2/Assignment 2/README.md
 homework_2/Assignment 2/requirements.txt
 project/main.py
+project/v0_warehouse_robot_env.py
+project/v0_warehouse_robot.py

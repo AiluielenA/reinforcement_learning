@@ -14,13 +14,15 @@ class Robot:
         self.grid_cols = grid_cols
         self.reset()
 
-    def reset(self):
+    def reset(self, seed=None):
+        random.seed(seed)
         self.position = [
             random.randint(0, self.grid_rows - 1),
             random.randint(0, self.grid_cols - 1)
         ]
         self.has_package = False
 
+    # move() needs different logic to control terminate flag in the env.step()
     def move(self, action: RobotAction):
         if action == RobotAction.LEFT and self.position[1] > 0:
             self.position[1] -= 1
@@ -30,3 +32,16 @@ class Robot:
             self.position[0] -= 1
         elif action == RobotAction.DOWN and self.position[0] < self.grid_rows - 1:
             self.position[0] += 1
+
+        # Robots should have access to package_picked,package_pos and target pos to return "True" 
+        # for reaching the target
+
+        # # Check if robot picks up the package
+        # if not self.package_picked and self.robot_pos == self.package_pos:
+        #     self.package_picked = True
+
+        # # Return True if the robot delivers the package
+        # return self.package_picked and self.robot_pos == self.target_pos
+    
+    def __str__(self):
+        return f"Robot(pos={self.position}, has_package={self.has_package})"

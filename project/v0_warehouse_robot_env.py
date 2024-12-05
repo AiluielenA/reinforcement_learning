@@ -141,12 +141,12 @@ if __name__=="__main__":
     # print("Check environment end")
 
     # Reset environment
-    obs = env.reset()[0]
+    # obs = env.reset()[0]
 
-    # Take some random actions
-    while(True):
-        rand_action = env.action_space.sample()
-        obs, reward, terminated, _, _ = env.step(rand_action)
+    # # Take some random actions
+    # while(True):
+    #     rand_action = env.action_space.sample()
+    #     obs, reward, terminated, _, _ = env.step(rand_action)
 
-        if(terminated):
-            obs = env.reset()[0]
+    #     if(terminated):
+    #         obs = env.reset()[0]
