@@ -9,8 +9,8 @@ from gymnasium.utils.env_checker import check_env
 
 # Register this module as a gym environment. Once registered, the id is usable in gym.make().
 register(
-    id='warehouse-robot',                                # call it whatever you want
-    entry_point='environment_class:Environment', # module_name:class_name
+    id='warehouse-robot',                               
+    entry_point='environment_class:Environment',
 )
 
 class Environment(gym.Env):
@@ -90,6 +90,16 @@ class Environment(gym.Env):
             if collision_detected:
                 reward = -5        
             # Check if the robot picks up a package
+            
+            # The robot doesnt have a pkg and it is in pkg location
+                # If action == pick -> get a reward
+                # else penalize
+            # If robot has a pkg and is on pkg location
+                # give a zero reward
+            # If robot is in target location and has a pkg
+                # If action == deposit -> get reward
+                # else penalize
+            # Give rewards based on robots proximity to pkg and target
             for package in self.packages:
                 if not package.picked and robot.position == package.position:
                     robot.has_package = True
