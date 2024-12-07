@@ -7,6 +7,8 @@ class RobotAction(Enum):
     DOWN=1
     RIGHT=2
     UP=3
+    PICK = False
+    DEPOSIT = False
     
 class Robot:
     def __init__(self, grid_rows, grid_cols):

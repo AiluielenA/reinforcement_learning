@@ -1,4 +1,4 @@
-import robot_class as Robot
+import robot_class as Robot, RobotAction
 import package_class as Package
 import target_class as Target
 import numpy as np
@@ -33,7 +33,7 @@ class Environment(gym.Env):
         self.observation_space = spaces.Dict({
             "robots": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_robots, 2), dtype=np.int32),
             "package_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_packages, 2), dtype=np.int32),
-            "target_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(targets, 2), dtype=np.int32),
+            "target_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_targets, 2), dtype=np.int32),
             "packages": spaces.Box(low=0, high=1, shape=(num_packages,), dtype=np.int32)
         })     
 
@@ -79,6 +79,8 @@ class Environment(gym.Env):
         terminated = False
         truncated = False
         
+        proximity_threshold = 0
+        
         # Track robot positions to detect collisions
         positions = [tuple(robot.position) for robot in self.robots]
         collision_detected = len(positions) != len(set(positions))   
@@ -89,29 +91,58 @@ class Environment(gym.Env):
             # Penalize collisions
             if collision_detected:
                 reward = -5        
-            # Check if the robot picks up a package
             
-            # The robot doesnt have a pkg and it is in pkg location
-                # If action == pick -> get a reward
-                # else penalize
-            # If robot has a pkg and is on pkg location
-                # give a zero reward
             # If robot is in target location and has a pkg
                 # If action == deposit -> get reward
                 # else penalize
-            # Give rewards based on robots proximity to pkg and target
+                
+            
+    
+            # Check if the robot picks up a package
             for package in self.packages:
-                if not package.picked and robot.position == package.position:
-                    robot.has_package = True
-                    package.picked = True
-                    reward = 5
+                if not package.picked and robot.position == package.position :
+                    if robot.PICKED:
+                        # The robot doesnt have a pkg and it is in pkglocation
+                        if not robot.has_package:
+                            robot.has_package = True
+                            package.picked = True
+                            reward += 5
+                        else:
+                            # If robot has a pkg and is on pkg location
+                            reward += 1
+                    else: 
+                        # Prevent idle state
+                        if robot.has_package:
+                            reward += 1
+                        else:
+                            #Penalize not picking a pck
+                            reward -= 5
+
+                # Calculate proximity to a pkg         
+                distance_pkg = self._manhattan_distance(robot.position,package.position) 
+                # Reward based on the distance            
+                if not robot.has_package and distance_pkg < proximity_threshold:
+                    reward += 1.5
 
             # Check if the robot delivers a package
             for target in self.targets:
                 if robot.has_package and robot.position == target.position:
-                    robot.has_package = False
-                    reward = 10
-                    terminated = True
+                    # Robot deposits succesfully 
+                    if robot.DEPOSIT:
+                        robot.has_package = False
+                        reward += 10
+                        terminated = True
+                    else:
+                    # Penalty fro not depositing
+                        reward -= 10
+            
+            
+            
+            # Calculate proximity to a target         
+            distance_target = self._manhattan_distance(robot.position,target.position) 
+            # Reward based on the distance            
+            if robot.has_package and distance_target < proximity_threshold:
+                reward += 1.5
             
             self.steps_taken += 1
             if self.steps_taken >= self.max_steps:
@@ -151,10 +182,14 @@ class Environment(gym.Env):
             "target_positions": np.array([tgt.position for tgt in self.targets]),
             "packages": np.array([int(pkg.picked) for pkg in self.packages])
         }
+        
+    def _manhattan_distance(self, pos1, pos2):
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
 
 # For unit testing
 if __name__=="__main__":
-    env = gym.make('warehouse-robot-v0', render_mode='human')
+    env = gym.make('warehouse-robot', render_mode='human')
 
     # Use this to check our custom environment
     # print("Check environment begin")
