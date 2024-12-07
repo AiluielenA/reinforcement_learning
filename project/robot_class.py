@@ -1,14 +1,15 @@
 import random
-import enum as Enum
+from enum import Enum
+
 
 
 class RobotAction(Enum):
-    LEFT=0
-    DOWN=1
-    RIGHT=2
-    UP=3
-    PICK = False
-    DEPOSIT = False
+    LEFT = 0
+    DOWN = 1
+    RIGHT = 2
+    UP = 3
+    PICK = 4
+    DEPOSIT = 5
     
 class Robot:
     def __init__(self, grid_rows, grid_cols):
@@ -34,6 +35,10 @@ class Robot:
             self.position[0] -= 1
         elif action == RobotAction.DOWN and self.position[0] < self.grid_rows - 1:
             self.position[0] += 1
+        # elif action == RobotAction.PICK:
+        #     pass  # Handle in the environment
+        # elif action == RobotAction.DEPOSIT:
+        #     pass  # Handle in the environment
 
         # Robots should have access to package_picked,package_pos and target pos to return "True" 
         # for reaching the target
