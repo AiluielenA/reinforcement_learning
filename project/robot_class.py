@@ -27,6 +27,10 @@ class Robot:
 
     # move() needs different logic to control terminate flag in the env.step()
     def move(self, action: RobotAction):
+        
+        print(f"Action received: {action}")
+        print(f"Initial position: {self.position}")
+        
         if action == RobotAction.LEFT and self.position[1] > 0:
             self.position[1] -= 1
         elif action == RobotAction.RIGHT and self.position[1] < self.grid_cols - 1:
@@ -49,6 +53,8 @@ class Robot:
 
         # # Return True if the robot delivers the package
         # return self.package_picked and self.robot_pos == self.target_pos
+        
+        print(f"Updated position: {self.position}")
     
     def __str__(self):
         return f"Robot(pos={self.position}, has_package={self.has_package})"
