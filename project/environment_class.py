@@ -91,6 +91,8 @@ class Environment(gym.Env):
             if action in [RobotAction.LEFT, RobotAction.RIGHT, RobotAction.UP, RobotAction.DOWN]:
                 robot.move(action)
             elif action == RobotAction.PICK:
+                if robot.has_package:
+                    reward -= 1  # Penalize trying to pick while holding a package            
                 # Check for picking up a package (First Come First Served policy) 
                 for package in self.packages:
                     if robot.position == package.position and not package.picked:
@@ -101,6 +103,8 @@ class Environment(gym.Env):
                     elif robot.position == package.position and package.picked:
                         reward -= 2.5  # Penalize trying to pick an unavailable package                      
             elif action == RobotAction.DEPOSIT:
+                if not robot.has_package:
+                    reward -= 2  # Penalize trying to deposit without a package
                 # Check for depositing up a package
                 for target in self.targets:
                     if robot.position == target.position and robot.has_package:
@@ -108,7 +112,7 @@ class Environment(gym.Env):
                             robot.has_package = False
                             target.occupied = True
                             reward += 10  # Reward for delivering the package
-                            terminated = True
+                            terminated = all(target.occupied for target in self.targets) # cooperative termination
                             break  # Only one robot can deposit
                         else:
                             reward -= 5  # Penalize depositing on an already occupied target
@@ -119,6 +123,11 @@ class Environment(gym.Env):
         if len(positions) != len(set(positions)):
             reward -= 5  # Penalize collisions
 
+        # Penalize robots for being in close proximity to each other
+        for i, robot1 in enumerate(self.robots):
+            for j, robot2 in enumerate(self.robots):
+                if i != j and self._manhattan_distance(robot1.position, robot2.position) == 2:
+                    reward -= 2  # Penalize close proximity
     
         for robot in self.robots:
             # Check if the robot picks up a package
@@ -143,7 +152,11 @@ class Environment(gym.Env):
                         reward += 0.5
                     else:
                         reward -= 0.5  ## adjust if is too far                
-                
+
+        # Penalize idling (no action)
+        if all(action not in [RobotAction.PICK, RobotAction.DEPOSIT] for action in robot_actions):
+            reward -= 1
+
         self.steps_taken += 1
         if self.steps_taken >= self.max_steps:
             truncated = True
