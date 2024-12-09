@@ -39,22 +39,9 @@ class Robot:
             self.position[0] -= 1
         elif action == RobotAction.DOWN and self.position[0] < self.grid_rows - 1:
             self.position[0] += 1
-        # elif action == RobotAction.PICK:
-        #     pass  # Handle in the environment
-        # elif action == RobotAction.DEPOSIT:
-        #     pass  # Handle in the environment
-
-        # Robots should have access to package_picked,package_pos and target pos to return "True" 
-        # for reaching the target
-
-        # # Check if robot picks up the package
-        # if not self.package_picked and self.robot_pos == self.package_pos:
-        #     self.package_picked = True
-
-        # # Return True if the robot delivers the package
-        # return self.package_picked and self.robot_pos == self.target_pos
         
         print(f"Updated position: {self.position}")
+        return self.position
     
     def __str__(self):
         return f"Robot(pos={self.position}, has_package={self.has_package})"

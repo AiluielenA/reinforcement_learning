@@ -99,11 +99,13 @@ class Environment(gym.Env):
         proximity_threshold_far = 5
         proximity_threshold_close = 2
         
+        robot_position = []
+        
         for i, robot in enumerate(self.robots):
             action = RobotAction(robot_actions[i])
 
             if action in [RobotAction.LEFT, RobotAction.RIGHT, RobotAction.UP, RobotAction.DOWN]:
-                robot.move(action)
+                robot_position.append(tuple(robot.move(action)))
             elif action == RobotAction.PICK:
                 if robot.has_package:
                     reward -= 1  # Penalize trying to pick while holding a package            
@@ -133,14 +135,15 @@ class Environment(gym.Env):
 
 
         # Track robot positions to detect collisions (MOVED OUTSIDE THE LOOP TO ENSURE BOTH ROBOTS TAKE AN ACTION FIRST)
-        positions = [tuple(robot.position) for robot in self.robots]
-        if len(positions) != len(set(positions)):
+        # positions = [tuple(robot.position) for robot in self.robots]
+        if len(robot_position) != len(set(robot_position)):
             reward -= 5  # Penalize collisions
             
-        # elif tuple(new_position) in [tuple(obstacle.position) for obstacle in self.obstacles]:
-        #             valid_move = False
-        #             reward -= 3  # Penalize for attempting to move into an obstacle
-        #             print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Target={new_position}")
+        else:
+            for rob_pos in robot_position:
+                if rob_pos in [tuple(obstacle.position) for obstacle in self.obstacles]:
+                    reward -= 3  # Penalize for attempting to move into an obstacle
+                    print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Target={rob_pos}")
                 
 
         # Penalize robots for being in close proximity to each other

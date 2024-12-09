@@ -74,10 +74,10 @@ class Renderer:
 
 
 if __name__ == "__main__":
-    env = Environment(grid_rows=6, grid_cols=7, num_robots=2, num_packages=2)
+    env = Environment(grid_rows=12, grid_cols=12, num_robots=2, num_packages=2)
 
     # Add obstacles to the environment (manually for now)
-    env.obstacles = [Obstacle(5, 5, [(r.position for r in env.robots)]) for _ in range(3)]  # Add 3 obstacles
+    env.obstacles = [Obstacle(5, 5, [(r.position for r in env.robots)]) for _ in range(10)]  # Add 3 obstacles
 
     renderer = Renderer(env)
 
