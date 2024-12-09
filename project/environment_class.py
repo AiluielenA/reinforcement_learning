@@ -99,136 +99,84 @@ class Environment(gym.Env):
         proximity_threshold_far = 5
         proximity_threshold_close = 2
         
-        positions = [tuple(robot.position) for robot in self.robots]
-        
         for i, robot in enumerate(self.robots):
             action = RobotAction(robot_actions[i])
-            print(f"Robot {i}: Action={action}, Position before move={robot.position}")
-            
-            # Track whether the move is valid
-            valid_move = True
-            
-            # Handle movement or actions
+
             if action in [RobotAction.LEFT, RobotAction.RIGHT, RobotAction.UP, RobotAction.DOWN]:
-                # Predict the new position based on the action
-                new_position = robot.position[:]
-                if action == RobotAction.LEFT:
-                    new_position[1] -= 1
-                elif action == RobotAction.RIGHT:
-                    new_position[1] += 1
-                elif action == RobotAction.UP:
-                    new_position[0] -= 1
-                elif action == RobotAction.DOWN:
-                    new_position[0] += 1
-                # Check if the move is out of bounds
-                if (new_position[0] < 0 or new_position[0] >= self.grid_rows or
-                    new_position[1] < 0 or new_position[1] >= self.grid_cols):
-                    valid_move = False
-                    reward -= 3  # Penalize for attempting an out-of-bounds move
-                    print(f"Robot {i}: Invalid move out of bounds, Position={robot.position}, Action={action}")
-                
-                # Check if the new position collides with an obstacle
-                elif tuple(new_position) in [tuple(obstacle.position) for obstacle in self.obstacles]:
-                    valid_move = False
-                    reward -= 3  # Penalize for attempting to move into an obstacle
-                    print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Target={new_position}")
-                
-                else:
-                    # If valid, execute the move
-                    robot.move(action)
-                    print(f"Robot {i}: Position after move={robot.position}")
-
-            # Track robot positions to detect collisions
-            positions[i] = tuple(robot.position)
-            collision_detected = len(positions) != len(set(positions))       
-                
-            # Penalize collisions
-            if collision_detected:
-                reward = -5 
-                print("Penalty collision")
-
-            # Check if the robot picks up a package
-            # Handle PICK action
-            if action == RobotAction.PICK:
-                package_found= False
+                robot.move(action)
+            elif action == RobotAction.PICK:
+                if robot.has_package:
+                    reward -= 1  # Penalize trying to pick while holding a package            
+                # Check for picking up a package (First Come First Served policy) 
                 for package in self.packages:
-                    # The robot doesnt have a pkg and it is in pkg location 
-                    if robot.position == package.position and not package.picked: 
-                        package_found= False
-                        if not robot.has_package:
-                            # Give reward for picking the pkg
-                            robot.has_package = True
-                            package.picked = True
-                            reward += 5
-                            print("reward pick")   
-                        else:
-                            # Penalize not picking
-                            print("penalty not pick")
-                            reward -= 5
-                    else:
-                        # Calculate proximity to a pkg         
-                        distance_pkg = self._manhattan_distance(robot.position,package.position) 
-                        # Reward based on the distance            
-                        if not robot.has_package: 
-                            if distance_pkg <= proximity_threshold_close:
-                                print("reward pkg proximity close")
-                                reward += 2.5    
-                            elif distance_pkg > proximity_threshold_close and distance_pkg < proximity_threshold_far:
-                                print("reward pkg proximity far")
-                                reward += 0.5
-                            else:
-                                print("reward pkg proximity too far")
-                                reward += 0  ## adjust if is too far  
-                    
-                    if not package_found:
-                        reward -= 3  # Penalize trying to pick when no package is present
-                        print(f"Robot {i}: Attempted to pick but no package found at position {robot.position}")
-                   
-
-            # Check if the robot delivers a package
-            if action == RobotAction.DEPOSIT:
-                target_found = False
+                    if robot.position == package.position and not package.picked:
+                        robot.has_package = True
+                        package.picked = True
+                        reward += 5  # Reward for picking up a package
+                        break  # Stop checking once the package is picked   
+                    elif robot.position == package.position and package.picked:
+                        reward -= 2.5  # Penalize trying to pick an unavailable package                      
+            elif action == RobotAction.DEPOSIT:
+                if not robot.has_package:
+                    reward -= 2  # Penalize trying to deposit without a package
+                # Check for depositing up a package
                 for target in self.targets:
-                    if robot.position == target.position:   
-                        target_found = True 
-                        if robot.has_package:
+                    if robot.position == target.position and robot.has_package:
+                        if not target.occupied:  # Check if the target is unoccupied
                             robot.has_package = False
-                            reward += 10
-                            terminated = True
-                            # Respawn package at a new random position
-                            new_package = Package(
-                                self.grid_rows,
-                                self.grid_cols,
-                                [pkg.position for pkg in self.packages] +
-                                [robot.position for robot in self.robots] +
-                                [target.position for target in self.targets]
-                            )
-                            self.packages.append(new_package)
-                            print(f"New package spawned at {new_package.position}")
-                            
+                            target.occupied = True
+                            reward += 10  # Reward for delivering the package
+                            terminated = all(target.occupied for target in self.targets) # cooperative termination
+                            break  # Only one robot can deposit
                         else:
-                        # Penalty for not depositing
-                            print("penalty not target deposit")
-                            reward -= 10
-                    else:
-                        # Calculate proximity to a target         
-                        distance_target = self._manhattan_distance(robot.position,target.position) 
-                        # Reward based on the distance            
-                        if robot.has_package: 
-                            if distance_target <= proximity_threshold_close:
-                                print("reward target proximity close")
-                                reward += 2.5
-                            elif distance_target > proximity_threshold_close and distance_target < proximity_threshold_far:
-                                reward += 0.5
-                                print("reward target proximity far")
-                            else:
-                                print("reward target proximity too far")
-                                reward += 0  ## adjust if is too far   
-                    if not target_found:
-                        reward -= 3  # Penalize trying to deposit when not at a target
-                        print(f"Robot {i}: Attempted to deposit but not at a target position")
+                            reward -= 5  # Penalize depositing on an already occupied target
 
-                            
+
+        # Track robot positions to detect collisions (MOVED OUTSIDE THE LOOP TO ENSURE BOTH ROBOTS TAKE AN ACTION FIRST)
+        positions = [tuple(robot.position) for robot in self.robots]
+        if len(positions) != len(set(positions)):
+            reward -= 5  # Penalize collisions
+            
+        # elif tuple(new_position) in [tuple(obstacle.position) for obstacle in self.obstacles]:
+        #             valid_move = False
+        #             reward -= 3  # Penalize for attempting to move into an obstacle
+        #             print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Target={new_position}")
+                
+
+        # Penalize robots for being in close proximity to each other
+        for i, robot1 in enumerate(self.robots):
+            for j, robot2 in enumerate(self.robots):
+                if i != j and self._manhattan_distance(robot1.position, robot2.position) == 2:
+                    reward -= 2  # Penalize close proximity
+    
+        for robot in self.robots:
+            # Check if the robot picks up a package
+            if not robot.has_package:
+                for package in self.packages:
+                    if not package.picked:
+                        # Calculate proximity to a package
+                        distance_pkg = self._manhattan_distance(robot.position, package.position)
+                        # Reward based on the distance 
+                        if distance_pkg < proximity_threshold_close:
+                            reward += 2.5
+                        elif proximity_threshold_close <= distance_pkg < proximity_threshold_far:
+                            reward += 0.5
+                        else:
+                            reward -= 0.5  ## adjust if is too far
+            else:
+                for target in self.targets:
+                    distance_target = self._manhattan_distance(robot.position, target.position)
+                    if distance_target < proximity_threshold_close:
+                        reward += 2.5
+                    elif proximity_threshold_close <= distance_target < proximity_threshold_far:
+                        reward += 0.5
+                    else:
+                        reward -= 0.5  ## adjust if is too far                
+
+        # Penalize idling (no action)
+        if all(action not in [RobotAction.PICK, RobotAction.DEPOSIT] for action in robot_actions):
+            reward -= 1
+
         self.steps_taken += 1
         if self.steps_taken >= self.max_steps:
             truncated = True
