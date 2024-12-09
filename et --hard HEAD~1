@@ -1,0 +1,248 @@
+[33mcommit cd7640168a09472a596f4196df48e9ba12b88296[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Sat Dec 7 17:13:21 2024 +0100
+
+    introduced fcfs policy in accessing pkgs/targets, optimized action handling
+
+[33mcommit 9bb994c1c3b2d490bdf2cbaa93bd8c5d8c0ef6ba[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Sat Dec 7 15:36:13 2024 +0100
+
+    reward function modified, rendering fixed
+
+[33mcommit a4ff1618ae5e0a7493473ad5685ecd8918c7e267[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Sat Dec 7 13:31:11 2024 +0100
+
+    latest changes - rewards
+
+[33mcommit 8a321216bf2378763a1b98ad25cd45ab6f4fcf60[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Fri Dec 6 13:16:36 2024 +0100
+
+    reward pseudocode added
+
+[33mcommit 6de2c9b9b3f8c344eb444583fdff93037a3a8b9d[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Thu Dec 5 21:06:59 2024 +0100
+
+    move() has to be refactored to serve env.step() functionality
+
+[33mcommit 134d5e11a99132b40bcf130b37c9706317f7470c[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Thu Dec 5 21:04:57 2024 +0100
+
+    __init__, reset and render functions updated
+
+[33mcommit bff99f33a411b4bd67f12e2f2659ebda8dd12b1d[m
+Merge: 075206d 521f0ae
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Thu Dec 5 17:41:40 2024 +0100
+
+    Merge branch 'elena' of https://github.com/AiluielenA/reinforcement_learning
+
+[33mcommit 521f0aed59383a44dc58f09f0a581c7cfd08e808[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Thu Dec 5 16:06:39 2024 +0100
+
+    restructure of project
+
+[33mcommit 075206d1a0b300b5ff40f26b7683d5460ef2b0ab[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Thu Dec 5 13:52:47 2024 +0100
+
+    Custom env + agent basic implementation
+
+[33mcommit 10be03dc99172f9209bd5619120deae503a26220[m
+Author: Likhithbv <159788422+Likhithbv@users.noreply.github.com>
+Date:   Thu Dec 5 09:43:30 2024 +0100
+
+    Add files via upload
+
+[33mcommit 34c429a19afcdd317c05eab8cf95373018b8f243[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Tue Dec 3 20:54:41 2024 +0100
+
+    fixed reward update and task handling
+
+[33mcommit 3bf04a9fd2395140e5d2cf7c312b5389d32bdc0f[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Tue Dec 3 20:53:52 2024 +0100
+
+    fixed reward handling
+
+[33mcommit 2b213c39c5ad939f70f8de59719ddcc1c78dbed5[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Tue Dec 3 14:24:08 2024 +0100
+
+    project - functional + visualization
+
+[33mcommit 048b2a1a0980ce8a1930190579cacaca94135f98[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Mon Dec 2 16:48:24 2024 +0100
+
+    basic functionalities implemented
+
+[33mcommit f65893f1b0d39f7353563070c59986195087f696[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Thu Nov 28 15:21:14 2024 +0100
+
+    final assignment file
+
+[33mcommit 9367883d65465293c4965839fbd2e8a12ead9f7a[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Thu Nov 28 13:37:17 2024 +0100
+
+    assignment file done
+
+[33mcommit 661a76628ebcef9321e55a252bf439a8a31a4184[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Thu Nov 28 12:24:48 2024 +0100
+
+    updated requirements
+
+[33mcommit 2047879c9f0f98c9586f4df139ca68217de7de58[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Thu Nov 28 12:24:35 2024 +0100
+
+    Update requirements.txt
+
+[33mcommit 6c4ab27bd76f3a4a622f7e419655b008b385dc42[m
+Merge: dd790e9 5282e5d
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Thu Nov 28 11:40:58 2024 +0100
+
+    Merge branch 'main' of https://github.com/AiluielenA/reinforcement_learning
+
+[33mcommit dd790e9295f49d748896c63e8f3262f19c9b8afc[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Thu Nov 28 11:40:53 2024 +0100
+
+    .
+
+[33mcommit 5282e5d5aabc0c14dffd8ae71cbb98f76c805333[m
+Merge: a3ceff1 3722049
+Author: ad <66775768+Adnan-Adda@users.noreply.github.com>
+Date:   Wed Nov 27 15:58:10 2024 +0100
+
+    Merge pull request #4 from AiluielenA/ass2tf
+    
+    added tf imple
+
+[33mcommit 3722049da03bae01090549c2dfc38b9a892a9372[m[33m ([m[1;31morigin/ass2tf[m[33m, [m[1;31morigin/adnan[m[33m)[m
+Author: adde <almedawer.adnan@gmail.com>
+Date:   Wed Nov 27 15:57:21 2024 +0100
+
+    added tf imple
+
+[33mcommit a3ceff133ebbe2f3012c225bd53cb510a5f92859[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Wed Nov 27 14:23:38 2024 +0100
+
+    updated hyperparams
+
+[33mcommit 790153f71b28e495b5b4f32bd291480c5a0dba46[m
+Author: Konstantinos Tantoulas <61051482+ktantoulas@users.noreply.github.com>
+Date:   Tue Nov 26 16:21:11 2024 +0100
+
+    Update README.md
+
+[33mcommit 07d44ae3724216749bba6aa6b91b91e766395b9e[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Tue Nov 26 16:04:16 2024 +0100
+
+    required dependencies
+
+[33mcommit f7a99538068b3381e9f255eb63aad4101bbf3e37[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Tue Nov 26 16:03:43 2024 +0100
+
+    Project description
+
+[33mcommit 9898c793f10e8ad6306e8cf4988b1fdcdbecac44[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Tue Nov 26 14:56:36 2024 +0100
+
+    updated training hyperparams
+
+[33mcommit f71a3da66d38243637c98ff2f0c33e932086f5a5[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Tue Nov 26 13:33:56 2024 +0100
+
+    updated training parameters
+
+[33mcommit 917ac31069f29ac59241ed2be5b148a50d820811[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Tue Nov 26 09:09:11 2024 +0100
+
+    changes to the assign
+
+[33mcommit 93e025635809fc603c3f13140116ff05af8861a5[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Mon Nov 25 22:16:33 2024 +0100
+
+    updated logging
+
+[33mcommit 4dd61f25b61fa76d51d2efbe27bc24d6b9b5670a[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Mon Nov 25 19:16:39 2024 +0100
+
+    update_network() updated
+
+[33mcommit cb56b45694d02426bb95a9c91646a577cfa936a1[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Mon Nov 25 19:05:43 2024 +0100
+
+    logging updated
+
+[33mcommit 1580a659f79e6b56b0fb96093ffa9f064c7adcc9[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Mon Nov 25 16:58:01 2024 +0100
+
+    running the assign2 for different gammas
+
+[33mcommit 802152715041ec6b9908a25d672e2365e91af24c[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Mon Nov 25 13:16:11 2024 +0100
+
+    epsilon decay updated
+
+[33mcommit 31ec4402e3e2cf5c859bf5a0c1fba3fff687f63b[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Mon Nov 25 11:10:45 2024 +0100
+
+    Add comments and fixed epsilon decay
+
+[33mcommit 018c4932c06053b974ea7e6e7b748fb658d92185[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Mon Nov 25 10:54:32 2024 +0100
+
+    logging info updated
+
+[33mcommit 90b616ecbc7b05ffac4e85ac2f2da277ee0316f9[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Mon Nov 25 10:43:00 2024 +0100
+
+    Logging script updated
+
+[33mcommit 9c71d292bbc7386e5e74b5470b55f5726be82e27[m
+Author: Teodorescu Iulia-Elena <93094532+AiluielenA@users.noreply.github.com>
+Date:   Sun Nov 24 18:43:55 2024 +0100
+
+    assignment 2 - more tests with different episodes and hidden layers number of neurons
+
+[33mcommit 1c752bd0208aead84aed25ff8957984324aa1aa2[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Fri Nov 22 15:52:56 2024 +0100
+
+    Reward logging updated
+
+[33mcommit 7f0516d247dc3504b79681049ee8668f72d27d0b[m
+Author: Konstantinos Tantoulas <kostastad@gmail.com>
+Date:   Thu Nov 21 15:38:22 2024 +0100
+
+    Lunar Lander implementation - needs to be trained/evaluated on server
+
+[33mcommit f38b6ec4229358a0a5203ec363fa108216471c8c[m
+Merge: 80e19cf 3ddec56
+Author: ad <66775768+Adnan-Adda@users.norepl
