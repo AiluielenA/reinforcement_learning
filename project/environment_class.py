@@ -100,12 +100,24 @@ class Environment(gym.Env):
         proximity_threshold_close = 2
         
         robot_position = []
-        
+        obstacle_positions = [tuple(obstacle.position) for obstacle in self.obstacles]
+
         for i, robot in enumerate(self.robots):
             action = RobotAction(robot_actions[i])
 
             if action in [RobotAction.LEFT, RobotAction.RIGHT, RobotAction.UP, RobotAction.DOWN]:
-                robot_position.append(tuple(robot.move(action)))
+                # new potential position
+                new_position = tuple(robot.move(action))
+                
+                # Check for obstacle collision
+                if new_position in obstacle_positions:
+                    reward -= 3  # Penalize obstacle collision and remain on the same state
+                    print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Target={new_position}")
+                    continue  # Skip further processing for this robot's action to prioritize penalty over other moves
+                else:
+                    
+                    robot_position.append(new_position)
+                    robot.position = new_position  
             elif action == RobotAction.PICK:
                 if robot.has_package:
                     reward -= 1  # Penalize trying to pick while holding a package            
@@ -138,13 +150,6 @@ class Environment(gym.Env):
         # positions = [tuple(robot.position) for robot in self.robots]
         if len(robot_position) != len(set(robot_position)):
             reward -= 5  # Penalize collisions
-            
-        else:
-            for rob_pos in robot_position:
-                if rob_pos in [tuple(obstacle.position) for obstacle in self.obstacles]:
-                    reward -= 3  # Penalize for attempting to move into an obstacle
-                    print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Target={rob_pos}")
-                
 
         # Penalize robots for being in close proximity to each other
         for i, robot1 in enumerate(self.robots):
