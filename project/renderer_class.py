@@ -24,8 +24,18 @@ class Renderer:
 
     def load_sprites(self):
         """Load and scale all sprites."""
-        self.robot_img = pygame.image.load("project/sprites/bot_blue.png")
-        self.robot_img = pygame.transform.scale(self.robot_img, (self.cell_size, self.cell_size))
+        # Robot sprites
+        self.robot1_img = pygame.image.load("project/sprites/bot_blue.png")
+        self.robot1_img = pygame.transform.scale(self.robot1_img, (self.cell_size, self.cell_size))
+
+        self.robot2_img = pygame.image.load("project/sprites/bot_black.png")
+        self.robot2_img = pygame.transform.scale(self.robot2_img, (self.cell_size, self.cell_size))
+        
+        self.robot1_with_package_img = pygame.image.load("project/sprites/bot_blue_with_package.png")
+        self.robot1_with_package_img = pygame.transform.scale(self.robot1_with_package_img, (self.cell_size, self.cell_size))
+
+        self.robot2_with_package_img = pygame.image.load("project/sprites/bot_black_with_package.png")
+        self.robot2_with_package_img = pygame.transform.scale(self.robot2_with_package_img, (self.cell_size, self.cell_size))
 
         self.package_img = pygame.image.load("project/sprites/package.png")
         self.package_img = pygame.transform.scale(self.package_img, (self.cell_size, self.cell_size))
@@ -52,36 +62,54 @@ class Renderer:
         for target in self.environment.targets:
             x, y = target.position
             self.window_surface.blit(self.target_img, (y * self.cell_size, x * self.cell_size))
+            # Check if there is a deposited package
+            for package in self.environment.packages:
+                if package.picked and package.position == target.position:
+                    self.window_surface.blit(self.package_img, (y * self.cell_size, x * self.cell_size))
 
-        # Draw packages
+        # Draw packages that are not picked
         for package in self.environment.packages:
             if not package.picked:
                 x, y = package.position
                 self.window_surface.blit(self.package_img, (y * self.cell_size, x * self.cell_size))
 
-        # Draw obstacles
-        for obstacle in self.environment.obstacles:  # Ensure `obstacles` are part of the environment
+        # Draw obstcles
+        for obstacle in self.environment.obstacles:
             x, y = obstacle.position
             self.window_surface.blit(self.obstacle_img, (y * self.cell_size, x * self.cell_size))
 
         # Draw robots
-        for robot in self.environment.robots:
+        for i, robot in enumerate(self.environment.robots):
             x, y = robot.position
-            self.window_surface.blit(self.robot_img, (y * self.cell_size, x * self.cell_size))
-
+            if not robot.has_package:
+                if i == 0:
+                    self.window_surface.blit(self.robot1_img, (y * self.cell_size, x * self.cell_size))
+                elif i == 1:
+                    self.window_surface.blit(self.robot2_img, (y * self.cell_size, x * self.cell_size))
+            else:
+                if i == 0:
+                    self.window_surface.blit(self.robot1_with_package_img, (y * self.cell_size, x * self.cell_size))
+                elif i == 1:
+                    self.window_surface.blit(self.robot2_with_package_img, (y * self.cell_size, x * self.cell_size))
         pygame.display.update()
         self.clock.tick(self.fps)  # Limit rendering speed to `fps`
 
 
 if __name__ == "__main__":
-    env = Environment(grid_rows=12, grid_cols=12, num_robots=2, num_packages=2)
+    env = Environment(grid_rows=7, grid_cols=7, num_robots=2, num_packages=2)
 
     # Add obstacles to the environment (manually for now)
-    env.obstacles = [Obstacle(5, 5, [(r.position for r in env.robots)]) for _ in range(10)]  # Add 3 obstacles
+    # env.obstacles = [Obstacle(5, 5, [(r.position for r in env.robots)]) for _ in range(10)]  # Add 3 obstacles
 
     renderer = Renderer(env)
+    
+    obs, _ = env.reset()
+    print("Initial Observation:", obs)
 
-    while True:
+    while (not env.terminated):
         random_actions = [random.choice(list(RobotAction)) for _ in env.robots]
         env.step(random_actions, fps=5)
         renderer.render()
+        
+    print("Episode ended. Resetting environment.")
+    obs, _ = env.reset()

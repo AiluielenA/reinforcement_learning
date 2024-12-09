@@ -31,6 +31,7 @@ class Environment(gym.Env):
         self.max_steps = 100 # time limit
         self.steps_taken = 0  # Initialize step counter
         self.render_mode = render_mode  # Store the render mode
+        self.terminated = False
 
         self.initialize_environment()
         # self.action_space = spaces.Discrete(len(RobotAction))
@@ -53,9 +54,15 @@ class Environment(gym.Env):
 
         occupied_positions = []
 
+        # Initialize obstacles first
+        for _ in range(self.num_obstacles):
+            obstacle = Obstacle(self.grid_rows, self.grid_cols, occupied_positions)
+            self.obstacles.append(obstacle)
+            occupied_positions.append(obstacle.position)
+
         # Initialize robots
         for _ in range(self.num_robots):
-            robot = Robot(self.grid_rows, self.grid_cols)
+            robot = Robot(self.grid_rows, self.grid_cols, occupied_positions)
             self.robots.append(robot)
             occupied_positions.append(robot.position)
 
@@ -70,12 +77,7 @@ class Environment(gym.Env):
             target = Target(self.grid_rows, self.grid_cols, occupied_positions)
             self.targets.append(target)
             occupied_positions.append(target.position)
-
-        # Initialize obstacles
-        for _ in range(self.num_obstacles):
-            obstacle = Obstacle(self.grid_rows, self.grid_cols, occupied_positions)
-            self.obstacles.append(obstacle)
-            occupied_positions.append(obstacle.position)
+            
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # May be redundant
@@ -93,63 +95,70 @@ class Environment(gym.Env):
     def step(self, robot_actions, fps=5):
         
         reward = 0
-        terminated = False
         truncated = False
         
         proximity_threshold_far = 5
         proximity_threshold_close = 2
         
         robot_position = []
-        obstacle_positions = [tuple(obstacle.position) for obstacle in self.obstacles]
+        obstacle_positions = [obstacle.position for obstacle in self.obstacles]
 
         for i, robot in enumerate(self.robots):
             action = RobotAction(robot_actions[i])
 
             if action in [RobotAction.LEFT, RobotAction.RIGHT, RobotAction.UP, RobotAction.DOWN]:
                 # new potential position
-                new_position = tuple(robot.move(action))
+                collision = robot.move(action, obstacle_positions)
                 
                 # Check for obstacle collision
-                if new_position in obstacle_positions:
+                if collision:
                     reward -= 3  # Penalize obstacle collision and remain on the same state
-                    print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Target={new_position}")
+                    print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Targe{collision}")
                     continue  # Skip further processing for this robot's action to prioritize penalty over other moves
                 else:
-                    
-                    robot_position.append(new_position)
-                    robot.position = new_position  
+                    robot_position.append(robot.position)
             elif action == RobotAction.PICK:
                 if robot.has_package:
-                    reward -= 1  # Penalize trying to pick while holding a package            
-                # Check for picking up a package (First Come First Served policy) 
-                for package in self.packages:
-                    if robot.position == package.position and not package.picked:
-                        robot.has_package = True
-                        package.picked = True
-                        reward += 5  # Reward for picking up a package
-                        break  # Stop checking once the package is picked   
-                    elif robot.position == package.position and package.picked:
-                        reward -= 2.5  # Penalize trying to pick an unavailable package                      
+                    reward -= 1  # Penalize trying to pick while holding a package  
+                else:          
+                    # Check for picking up a package (First Come First Served policy) 
+                    for package in self.packages:
+                        if robot.position == package.position and not package.picked:
+                            robot.has_package = True
+                            package.picked = True
+                            reward += 5  # Reward for picking up a package
+                            break  # Stop checking once the package is picked   
+                        elif robot.position == package.position and package.picked:
+                            reward -= 2.5  # Penalize trying to pick an unavailable package                      
             elif action == RobotAction.DEPOSIT:
                 if not robot.has_package:
                     reward -= 2  # Penalize trying to deposit without a package
-                # Check for depositing up a package
-                for target in self.targets:
-                    if robot.position == target.position and robot.has_package:
-                        if not target.occupied:  # Check if the target is unoccupied
-                            robot.has_package = False
-                            target.occupied = True
-                            reward += 10  # Reward for delivering the package
-                            terminated = all(target.occupied for target in self.targets) # cooperative termination
-                            break  # Only one robot can deposit
-                        else:
-                            reward -= 5  # Penalize depositing on an already occupied target
+                else:
+                    # Check for depositing up a package
+                    for target in self.targets:
+                        if robot.position == target.position and robot.has_package:
+                            if not target.occupied:  # Check if the target is unoccupied
+                                robot.has_package = False
+                                target.occupied = True
+                                for package in self.packages:
+                                    if package.picked and not package.delivered_to_target:  # Deliver the picked package
+                                        package.position = target.position  # Place the package on the target
+                                        package.delivered_to_target = True  # Mark as delivered
+                                        break  # Only one package can be delivered at a time
+                                reward += 10  # Reward for delivering the package
+                                self.terminated = all(target.occupied for target in self.targets) # cooperative termination
+                                break  # Only one robot can deposit
+                            else:
+                                reward -= 5  # Penalize depositing on an already occupied target
 
 
         # Track robot positions to detect collisions (MOVED OUTSIDE THE LOOP TO ENSURE BOTH ROBOTS TAKE AN ACTION FIRST)
         # positions = [tuple(robot.position) for robot in self.robots]
-        if len(robot_position) != len(set(robot_position)):
+        # Convert list elements to tuples for hashability
+        if len(robot_position) != len(set(tuple(pos) for pos in robot_position)):
             reward -= 5  # Penalize collisions
+            print("Penalty collision")
+
 
         # Penalize robots for being in close proximity to each other
         for i, robot1 in enumerate(self.robots):
@@ -194,7 +203,7 @@ class Environment(gym.Env):
         
         info = {}
                     
-        return obs, reward, terminated, truncated, info
+        return obs, reward, truncated, info
 
     def render(self, mode='human'):
         """Render the environment grid."""
@@ -268,9 +277,11 @@ if __name__ == "__main__":
 
     obs, _ = env.reset()
     print("Initial Observation:", obs)
+    terminated = False
 
-    for step in range(20):  # Limit steps for debugging
-        print(f"\nStep {step + 1}")
+
+    while(not terminated):
+        # print(f"\nStep {step + 1}")
         rand_action = env.action_space.sample()
         print(f"Random Actions: {rand_action}")
 
@@ -279,9 +290,8 @@ if __name__ == "__main__":
         print(f"Reward: {reward}")
         env.render()
 
-        if terminated or truncated:
-            print("Episode ended. Resetting environment.")
-            obs, _ = env.reset()
+    print("Episode ended. Resetting environment.")
+    obs, _ = env.reset()
 
 
         
