@@ -3,6 +3,7 @@ import random
 class Target:
     def __init__(self, grid_rows, grid_cols, occupied_positions):
         self.position = self.generate_position(grid_rows, grid_cols, occupied_positions)
+        self.occupied = False
 
     def generate_position(self, grid_rows, grid_cols, occupied_positions):
         while True:
