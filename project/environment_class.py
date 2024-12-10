@@ -22,7 +22,7 @@ except gym.error.Error:
 class Environment(gym.Env):
     metadata = {'render_modes': ['human'], 'render_fps': 10}
 
-    def __init__(self, grid_rows=6, grid_cols=7, num_robots=2, num_packages=2, num_targets=2, num_obstacles=3, num_charger=2, render_mode=None):
+    def __init__(self, grid_rows=6, grid_cols=7, num_robots=2, num_packages=2, num_targets=2, num_obstacles=4, num_charger=2, render_mode=None):
         self.grid_rows = grid_rows
         self.grid_cols = grid_cols
         self.num_robots = num_robots
@@ -44,7 +44,7 @@ class Environment(gym.Env):
             "package_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_packages, 2), dtype=np.int32),
             "target_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_targets, 2), dtype=np.int32),
             "packages": spaces.Box(low=0, high=1, shape=(num_packages,), dtype=np.int32),
-            "obstacle_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(len(self.obstacles), 2), dtype=np.int32),
+            "obstacle_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_obstacles, 2), dtype=np.int32),
             "charger": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_charger, 2), dtype=np.int32),
         })
    
@@ -54,7 +54,7 @@ class Environment(gym.Env):
         self.packages = []
         self.targets = []
         self.obstacles = []
-        self.charger = []
+        self.chargers = []
 
         occupied_positions = []
 
@@ -85,7 +85,7 @@ class Environment(gym.Env):
         # Initialize charging stations
         for _ in range(self.num_charger):
             charger = Charger(self.grid_rows, self.grid_cols, occupied_positions)
-            self.charger.append(charger)
+            self.chargers.append(charger)
             occupied_positions.append(charger)            
 
     def reset(self, seed=None, options=None):
@@ -118,16 +118,16 @@ class Environment(gym.Env):
             action = RobotAction(robot_actions[self.robots.index(robot)])
 
             # Consume energy for any action
-            robot.energy -= 1
-            if robot.energy <= 10:
-                reward -= 10  # Penalize robot for running out of energy
+            robot.energy -= 0.1
+            if robot.energy <= 20:
+                reward -= 15  # Penalize robot for running out of energy
                 continue
 
             # Handle charging logic
             if robot.energy <= energy_threshold:
                 # Find the closest available charger
                 closest_station = min(
-                    [ch for ch in self.charger if not ch.occupied],
+                    [ch for ch in self.chargers if not ch.occupied],
                     key=lambda ch: self._manhattan_distance(robot.position, ch.position),
                     default=None
                 )
@@ -144,10 +144,12 @@ class Environment(gym.Env):
 
             if action == RobotAction.CHARGE:
                 # Check for depositing up a package
-                for charger in self.charger:
-                    if robot.position == charger.position and robot.energy <= energy_threshold:
+                for charger in self.chargers:
+                    if robot.position == charger.position: #and robot.energy <= energy_threshold:
                         if not charger.occupied:  # Check if the charger is unoccupied
-                            robot.energy = robot.max_energy # Recharge
+                            robot.recharge()
+                            # robot.energy = min(robot.max_energy, robot.energy + 15)  # Recharge 20 units per step
+                            # robot.energy = robot.max_energy # Recharge
                             charger.occupied = True
                             reward += 10 
                             break  # Only one robot can deposit
@@ -292,7 +294,8 @@ class Environment(gym.Env):
             "package_positions": np.array([pkg.position for pkg in self.packages], dtype=np.int32),
             "target_positions": np.array([tgt.position for tgt in self.targets], dtype=np.int32),
             "packages": np.array([int(pkg.picked) for pkg in self.packages], dtype=np.int32),
-            "obstacle_positions": np.array([obstacle.position for obstacle in self.obstacles], dtype=np.int32)
+            "obstacle_positions": np.array([obstacle.position for obstacle in self.obstacles], dtype=np.int32),
+            "charger": np.array([charger.position for charger in self.chargers], dtype=np.int32)
         }
 
     def _manhattan_distance(self, pos1, pos2):

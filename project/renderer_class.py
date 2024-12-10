@@ -6,6 +6,8 @@ import random
 from environment_class import Environment
 from robot_class import Robot, RobotAction
 from obstacle_class import Obstacle
+from game_logger import GameLogger
+from stable_baselines3 import PPO
 
 
 class Renderer:
@@ -21,6 +23,7 @@ class Renderer:
         self.window_surface = pygame.display.set_mode(self.window_size)
         self.clock = pygame.time.Clock()
         self.load_sprites()
+        self.font = pygame.font.SysFont("Calibri", 22, bold=True)
 
     def load_sprites(self):
         """Load and scale all sprites."""
@@ -48,6 +51,10 @@ class Renderer:
 
         self.obstacle_img = pygame.image.load("project/sprites/obstacle.png")  # Placeholder sprite for obstacles
         self.obstacle_img = pygame.transform.scale(self.obstacle_img, (self.cell_size, self.cell_size))
+        
+        self.charger_img = pygame.image.load("project/sprites/charger.png")
+        self.charger_img = pygame.transform.scale(self.charger_img, (self.cell_size, self.cell_size))
+
 
     def render(self):
         """Render the current state of the environment."""
@@ -91,25 +98,56 @@ class Renderer:
                     self.window_surface.blit(self.robot1_with_package_img, (y * self.cell_size, x * self.cell_size))
                 elif i == 1:
                     self.window_surface.blit(self.robot2_with_package_img, (y * self.cell_size, x * self.cell_size))
+                    
+        # Draw charging stations
+        for charger in self.environment.chargers:
+            x, y = charger.position
+            self.window_surface.blit(self.charger_img, (y * self.cell_size, x * self.cell_size))
+
+        # Check if the task is completed
+        if all(target.occupied for target in self.environment.targets):
+            self.environment.terminated = True
+            if self.environment.terminated:
+                message = self.font.render("Task Completed!", True, (255, 0, 0))
+                text_rect = message.get_rect(center=(self.window_size[0] // 2, self.window_size[1] // 2))
+                self.window_surface.blit(message, text_rect)
+        elif all(robot.energy<=0 for robot in self.environment.robots):
+            self.environment.terminated = True
+            if self.environment.terminated:
+                message = self.font.render("Energy Exhausted!", True, (255, 0, 0))
+                text_rect = message.get_rect(center=(self.window_size[0] // 2, self.window_size[1] // 2))
+                self.window_surface.blit(message, text_rect)
+        
         pygame.display.update()
         self.clock.tick(self.fps)  # Limit rendering speed to `fps`
 
-
 if __name__ == "__main__":
-    env = Environment(grid_rows=7, grid_cols=7, num_robots=2, num_packages=2)
-
-    # Add obstacles to the environment (manually for now)
-    # env.obstacles = [Obstacle(5, 5, [(r.position for r in env.robots)]) for _ in range(10)]  # Add 3 obstacles
-
+    env = Environment(grid_rows=7, grid_cols=7, num_robots=2, num_packages=2, num_targets=2, num_obstacles=4, num_charger=2)
     renderer = Renderer(env)
+    logger = GameLogger()
     
     obs, _ = env.reset()
     print("Initial Observation:", obs)
 
+    step = 0
     while (not env.terminated):
         random_actions = [random.choice(list(RobotAction)) for _ in env.robots]
-        env.step(random_actions, fps=5)
+        obs, reward, truncated, info = env.step(random_actions, fps=5)
         renderer.render()
-        
+        # Log variables
+        energy_levels = [robot.energy for robot in env.robots]
+        packages_delivered = sum([1 for package in env.packages if package.delivered_to_target])
+        logger.log_step(step, reward, energy_levels, packages_delivered)
+
+        step += 1
+    logger.save_logs("game_logs.csv")    
     print("Episode ended. Resetting environment.")
-    obs, _ = env.reset()
+    
+        
+    while True:
+        renderer.render()  # Keep rendering with the "Task Completed" message
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN or event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+    

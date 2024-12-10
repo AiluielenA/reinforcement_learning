@@ -8,8 +8,8 @@ class Obstacle:
     def generate_position(self, grid_rows, grid_cols, occupied_positions):
         while True:
             pos = [
-                random.randint(1, grid_rows),
-                random.randint(1, grid_rows)
+                random.randint(1, grid_rows-1),
+                random.randint(1, grid_cols-1)
             ]
             if pos not in occupied_positions:
                 return pos
