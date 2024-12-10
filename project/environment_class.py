@@ -147,7 +147,7 @@ class Environment(gym.Env):
                 for charger in self.charger:
                     if robot.position == charger.position and robot.energy <= energy_threshold:
                         if not charger.occupied:  # Check if the charger is unoccupied
-                            robot.energy = 100 # Recharge
+                            robot.energy = robot.max_energy # Recharge
                             charger.occupied = True
                             reward += 10 
                             break  # Only one robot can deposit

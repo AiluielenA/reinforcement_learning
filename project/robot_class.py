@@ -10,12 +10,16 @@ class RobotAction(Enum):
     UP = 3
     PICK = 4
     DEPOSIT = 5
+    CHARGE = 6
     
 class Robot:
-    def __init__(self, grid_rows, grid_cols, occupied_positions):
+    def __init__(self, grid_rows, grid_cols, occupied_positions, energy):
         self.grid_rows = grid_rows
         self.grid_cols = grid_cols
         self.position = self.reset(occupied_positions)
+        self.energy = energy
+        self.max_energy = 100
+        self.has_package = False
 
     def reset(self, occupied_positions, seed=None):
         random.seed(seed)
