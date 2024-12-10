@@ -2,6 +2,7 @@ from robot_class import Robot, RobotAction
 from package_class import Package
 from target_class import Target
 from obstacle_class import Obstacle
+from charger_class import Charger
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
@@ -21,13 +22,14 @@ except gym.error.Error:
 class Environment(gym.Env):
     metadata = {'render_modes': ['human'], 'render_fps': 10}
 
-    def __init__(self, grid_rows=6, grid_cols=7, num_robots=2, num_packages=2, num_targets=2, num_obstacles=3, render_mode=None):
+    def __init__(self, grid_rows=6, grid_cols=7, num_robots=2, num_packages=2, num_targets=2, num_obstacles=3, num_charger=2, render_mode=None):
         self.grid_rows = grid_rows
         self.grid_cols = grid_cols
         self.num_robots = num_robots
         self.num_packages = num_packages
         self.num_targets = num_targets
         self.num_obstacles = num_obstacles
+        self.num_charger = num_charger
         self.max_steps = 100 # time limit
         self.steps_taken = 0  # Initialize step counter
         self.render_mode = render_mode  # Store the render mode
@@ -42,7 +44,8 @@ class Environment(gym.Env):
             "package_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_packages, 2), dtype=np.int32),
             "target_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_targets, 2), dtype=np.int32),
             "packages": spaces.Box(low=0, high=1, shape=(num_packages,), dtype=np.int32),
-            "obstacle_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(len(self.obstacles), 2), dtype=np.int32)
+            "obstacle_positions": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(len(self.obstacles), 2), dtype=np.int32),
+            "charger": spaces.Box(low=0, high=max(grid_rows, grid_cols) - 1, shape=(num_charger, 2), dtype=np.int32),
         })
    
 
@@ -51,6 +54,7 @@ class Environment(gym.Env):
         self.packages = []
         self.targets = []
         self.obstacles = []
+        self.charger = []
 
         occupied_positions = []
 
@@ -77,7 +81,12 @@ class Environment(gym.Env):
             target = Target(self.grid_rows, self.grid_cols, occupied_positions)
             self.targets.append(target)
             occupied_positions.append(target.position)
-            
+
+        # Initialize charging stations
+        for _ in range(self.num_charger):
+            charger = Charger(self.grid_rows, self.grid_cols, occupied_positions)
+            self.charger.append(charger)
+            occupied_positions.append(charger)            
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # May be redundant
@@ -97,16 +106,55 @@ class Environment(gym.Env):
         reward = 0
         truncated = False
         
-        proximity_threshold_far = 5
-        proximity_threshold_close = 2
+        proximity_threshold_far = 10
+        proximity_threshold_close = 5
+        energy_threshold = 40
         
         robot_position = []
         obstacle_positions = [obstacle.position for obstacle in self.obstacles]
+        robots_sorted_by_energy = sorted(self.robots, key=lambda r: r.energy)
 
-        for i, robot in enumerate(self.robots):
-            action = RobotAction(robot_actions[i])
+        for i, robot in enumerate(robots_sorted_by_energy):
+            action = RobotAction(robot_actions[self.robots.index(robot)])
 
-            if action in [RobotAction.LEFT, RobotAction.RIGHT, RobotAction.UP, RobotAction.DOWN]:
+            # Consume energy for any action
+            robot.energy -= 1
+            if robot.energy <= 10:
+                reward -= 10  # Penalize robot for running out of energy
+                continue
+
+            # Handle charging logic
+            if robot.energy <= energy_threshold:
+                # Find the closest available charger
+                closest_station = min(
+                    [ch for ch in self.charger if not ch.occupied],
+                    key=lambda ch: self._manhattan_distance(robot.position, ch.position),
+                    default=None
+                )
+
+                if closest_station:
+                    distance_to_station = self._manhattan_distance(robot.position, closest_station.position)
+
+                    if distance_to_station <= proximity_threshold_close:
+                        reward += 5  # Close proximity reward
+                    elif distance_to_station <= proximity_threshold_far:
+                        reward += 2  # Medium proximity reward
+                    else:
+                        reward -= 1  # Too far, minimal movement
+
+            if action == RobotAction.CHARGE:
+                # Check for depositing up a package
+                for charger in self.charger:
+                    if robot.position == charger.position and robot.energy <= energy_threshold:
+                        if not charger.occupied:  # Check if the charger is unoccupied
+                            robot.energy = 100 # Recharge
+                            charger.occupied = True
+                            reward += 10 
+                            break  # Only one robot can deposit
+                        else:
+                            reward -= 5  # Penalize charging on an already occupied target 
+
+            elif action in [RobotAction.LEFT, RobotAction.RIGHT, RobotAction.UP, RobotAction.DOWN]:
                 # new potential position
                 collision = robot.move(action, obstacle_positions)
                 
@@ -116,7 +164,8 @@ class Environment(gym.Env):
                     print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Targe{collision}")
                     continue  # Skip further processing for this robot's action to prioritize penalty over other moves
                 else:
-                    robot_position.append(robot.position)
+                    robot_position.append(robot.position)                       
+
             elif action == RobotAction.PICK:
                 if robot.has_package:
                     reward -= 1  # Penalize trying to pick while holding a package  
@@ -129,7 +178,8 @@ class Environment(gym.Env):
                             reward += 5  # Reward for picking up a package
                             break  # Stop checking once the package is picked   
                         elif robot.position == package.position and package.picked:
-                            reward -= 2.5  # Penalize trying to pick an unavailable package                      
+                            reward -= 5  # Penalize trying to pick an unavailable package        
+
             elif action == RobotAction.DEPOSIT:
                 if not robot.has_package:
                     reward -= 2  # Penalize trying to deposit without a package
@@ -156,14 +206,14 @@ class Environment(gym.Env):
         # positions = [tuple(robot.position) for robot in self.robots]
         # Convert list elements to tuples for hashability
         if len(robot_position) != len(set(tuple(pos) for pos in robot_position)):
-            reward -= 5  # Penalize collisions
+            reward -= 10  # Penalize collisions
             print("Penalty collision")
 
 
         # Penalize robots for being in close proximity to each other
         for i, robot1 in enumerate(self.robots):
             for j, robot2 in enumerate(self.robots):
-                if i != j and self._manhattan_distance(robot1.position, robot2.position) == 2:
+                if i != j and self._manhattan_distance(robot1.position, robot2.position) <= proximity_threshold_close:
                     reward -= 2  # Penalize close proximity
     
         for robot in self.robots:
@@ -175,20 +225,20 @@ class Environment(gym.Env):
                         distance_pkg = self._manhattan_distance(robot.position, package.position)
                         # Reward based on the distance 
                         if distance_pkg < proximity_threshold_close:
-                            reward += 2.5
+                            reward += 3
                         elif proximity_threshold_close <= distance_pkg < proximity_threshold_far:
-                            reward += 0.5
+                            reward += 2
                         else:
-                            reward -= 0.5  ## adjust if is too far
+                            reward -= 1  ## adjust if is too far
             else:
                 for target in self.targets:
                     distance_target = self._manhattan_distance(robot.position, target.position)
                     if distance_target < proximity_threshold_close:
-                        reward += 2.5
+                        reward += 3
                     elif proximity_threshold_close <= distance_target < proximity_threshold_far:
-                        reward += 0.5
+                        reward += 2
                     else:
-                        reward -= 0.5  ## adjust if is too far                
+                        reward -= 1  ## adjust if is too far                
 
         # Penalize idling (no action)
         if all(action not in [RobotAction.PICK, RobotAction.DEPOSIT] for action in robot_actions):
