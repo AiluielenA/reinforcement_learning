@@ -250,8 +250,8 @@ class Environment(gym.Env):
         if self.steps_taken >= self.max_steps:
             truncated = True
                     
-        obs = self._get_observation()
-        
+        # obs = self._get_observation()
+        obs = self.flatten_state(self._get_observation())
         
         info = {}
                     
@@ -287,6 +287,16 @@ class Environment(gym.Env):
         print("\n".join("".join(row) for row in grid))
         print("\n")
 
+    # def _get_observation(self):
+    #     """Construct the observation."""
+    #     return {
+    #         "robots": np.array([robot.position for robot in self.robots], dtype=np.int32),
+    #         "package_positions": np.array([pkg.position for pkg in self.packages], dtype=np.int32),
+    #         "target_positions": np.array([tgt.position for tgt in self.targets], dtype=np.int32),
+    #         "packages": np.array([int(pkg.picked) for pkg in self.packages], dtype=np.int32),
+    #         "obstacle_positions": np.array([obstacle.position for obstacle in self.obstacles], dtype=np.int32),
+    #         "charger": np.array([charger.position for charger in self.chargers], dtype=np.int32)
+    #     }
     def _get_observation(self):
         """Construct the observation."""
         return {
@@ -301,6 +311,29 @@ class Environment(gym.Env):
     def _manhattan_distance(self, pos1, pos2):
         return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
 
+    def flatten_state(self, state):
+        grid_size = self.grid_rows * self.grid_cols  
+        
+        flattened_state = []
+
+        for robot_pos in state["robots"]:
+            flattened_state.extend(robot_pos)
+
+        for package_pos in state["package_positions"]:
+            flattened_state.extend(package_pos)
+
+        for target_pos in state["target_positions"]:
+            flattened_state.extend(target_pos)
+
+        flattened_state.extend(state["packages"])
+
+        for obstacle_pos in state["obstacle_positions"]:
+            flattened_state.extend(obstacle_pos)
+
+        for charger_pos in state["charger"]:
+            flattened_state.extend(charger_pos)
+
+        return np.array(flattened_state, dtype=np.int32)    
 
 # # For unit testing
 # if __name__=="__main__":
