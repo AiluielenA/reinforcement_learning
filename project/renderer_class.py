@@ -132,7 +132,7 @@ if __name__ == "__main__":
     step = 0
     while (not env.terminated):
         random_actions = [random.choice(list(RobotAction)) for _ in env.robots]
-        obs, reward, truncated, info = env.step(random_actions, fps=5)
+        obs, reward,done, truncated, info = env.step(random_actions, fps=5)
         renderer.render()
         # Log variables
         energy_levels = [robot.energy for robot in env.robots]

@@ -250,12 +250,13 @@ class Environment(gym.Env):
         if self.steps_taken >= self.max_steps:
             truncated = True
                     
-        # obs = self._get_observation()
-        obs = self.flatten_state(self._get_observation())
+        obs = self._get_observation()
+        # obs = self.flatten_state(self._get_observation())
+        done = self.terminated
         
         info = {}
                     
-        return obs, reward, truncated, info
+        return obs, reward, done, truncated, info
 
     def render(self, mode='human'):
         """Render the environment grid."""
@@ -313,7 +314,6 @@ class Environment(gym.Env):
 
     def flatten_state(self, state):
         grid_size = self.grid_rows * self.grid_cols  
-        
         flattened_state = []
 
         for robot_pos in state["robots"]:
@@ -334,28 +334,6 @@ class Environment(gym.Env):
             flattened_state.extend(charger_pos)
 
         return np.array(flattened_state, dtype=np.int32)    
-
-# # For unit testing
-# if __name__=="__main__":
-#     env = gym.make('warehouse-robot', render_mode='human')
-
-#     # Use this to check our custom environment
-#     # print("Check environment begin")
-#     # check_env(env.unwrapped)
-#     # print("Check environment end")
-
-#     # Reset environment
-#     obs = env.reset()[0]
-
-#     # Take some random actions
-#     for i in range(1,20):
-#         rand_action = env.action_space.sample()
-#         obs, reward, terminated, truncated, _ = env.step(rand_action)
-#         env.render()
-
-#         if terminated or truncated:
-#             obs, _ = env.reset()
-
 
 # for testing the movement
 if __name__ == "__main__":
