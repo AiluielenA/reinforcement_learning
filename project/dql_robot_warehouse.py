@@ -11,6 +11,7 @@ from time import strftime
 import csv
 from environment_class import Environment
 from robot_class import Robot, RobotAction
+from renderer_class import Renderer
 
 
 class Logger:
@@ -182,7 +183,7 @@ def train_agent(env, agent, episodes, update_target_freq, logger=None, renderer=
         terminated = False
         steps = 0
 
-        while not terminated  and steps < 1000:
+        while not terminated  and steps < 10000:
             steps +=1
             
             # Select actions for each robot
@@ -200,16 +201,16 @@ def train_agent(env, agent, episodes, update_target_freq, logger=None, renderer=
             state = next_state
             total_reward += reward
             
-            # # Render the environment
-            #     if renderer:
-            #         renderer.render()
+            # Render the environment
+            if renderer:
+                renderer.render()
             
-            terminated = done or truncated
+            terminated = done
         
         # Log rewards and update target network periodically
-            logger.log_reward(episode, total_reward)
-            if episode % update_target_freq == 0:
-                agent.update_target_model()        
+        logger.log_reward(episode, total_reward)
+        if episode % update_target_freq == 0:
+            agent.update_target_model()        
             
         rewards.append(total_reward)
         print(f"Episode {episode + 1}/{episodes}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon.get_value():.2f}, Steps: {steps}")
@@ -235,11 +236,11 @@ def evaluate_agent(env, agent, episodes, logger=None, renderer=None):
             state = next_state
             total_reward += reward
             
-            # # Render the environment
-            #     if renderer:
-            #         renderer.render()
+            # Render the environment
+            if renderer:
+                renderer.render()
             
-            terminated = done or truncated
+            terminated = done
                 
             
         # Log evaluation rewards
@@ -267,7 +268,7 @@ def plot_rewards(root_folder, rewards, title, save_fig=False):
 if __name__ == "__main__":
     # env = gym.make('LunarLander-v3')
     env = Environment(grid_rows=7, grid_cols=7, num_robots=2, num_packages=2, num_targets=2, num_obstacles=4, num_charger=2)
-    # renderer = Renderer(env, cell_size=64, fps=10)
+    renderer = Renderer(env, cell_size=64, fps=10)
     
     # Define state and action sizes
     state_dim = env.flatten_state(env._get_observation()).shape[0]
@@ -300,10 +301,10 @@ if __name__ == "__main__":
     training_episodes = 1000
     update_target_freq = 20
 
-    training_rewards = train_agent(env, agent, training_episodes, update_target_freq, logger) #, renderer)
+    training_rewards = train_agent(env, agent, training_episodes, update_target_freq, logger, renderer)
     plot_rewards(logger.log_dir, training_rewards, "Training Rewards", True)
 
     # Evaluate the agent
     evaluation_episodes = 100
-    evaluation_rewards = evaluate_agent(env, agent, evaluation_episodes, logger) #, renderer)
+    evaluation_rewards = evaluate_agent(env, agent, evaluation_episodes, logger, renderer)
     plot_rewards(logger.log_dir, evaluation_rewards, "Evaluation Rewards", True)

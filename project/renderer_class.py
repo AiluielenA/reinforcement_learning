@@ -84,7 +84,12 @@ class Renderer:
         for obstacle in self.environment.obstacles:
             x, y = obstacle.position
             self.window_surface.blit(self.obstacle_img, (y * self.cell_size, x * self.cell_size))
-
+                    
+        # Draw charging stations
+        for charger in self.environment.chargers:
+            x, y = charger.position
+            self.window_surface.blit(self.charger_img, (y * self.cell_size, x * self.cell_size))
+    
         # Draw robots
         for i, robot in enumerate(self.environment.robots):
             x, y = robot.position
@@ -98,11 +103,6 @@ class Renderer:
                     self.window_surface.blit(self.robot1_with_package_img, (y * self.cell_size, x * self.cell_size))
                 elif i == 1:
                     self.window_surface.blit(self.robot2_with_package_img, (y * self.cell_size, x * self.cell_size))
-                    
-        # Draw charging stations
-        for charger in self.environment.chargers:
-            x, y = charger.position
-            self.window_surface.blit(self.charger_img, (y * self.cell_size, x * self.cell_size))
 
         # Check if the task is completed
         if all(target.occupied for target in self.environment.targets):

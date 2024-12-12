@@ -55,6 +55,7 @@ class Environment(gym.Env):
         self.targets = []
         self.obstacles = []
         self.chargers = []
+        self.terminated = False
 
         occupied_positions = []
 
