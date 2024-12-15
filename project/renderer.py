@@ -4,11 +4,9 @@ import sys
 from os import path
 import random
 from environment_class import Environment
-from robot_class import Robot, RobotAction
-from obstacle_class import Obstacle
+from project.robot import Robot, RobotAction
+from project.obstacle import Obstacle
 from game_logger import GameLogger
-from stable_baselines3 import PPO
-
 
 class Renderer:
     def __init__(self, environment, cell_size=64, fps=10):

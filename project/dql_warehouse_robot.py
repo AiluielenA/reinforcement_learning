@@ -10,8 +10,8 @@ import os
 from time import strftime
 import csv
 from environment_class import Environment
-from robot_class import Robot, RobotAction
-from renderer_class import Renderer
+from project.robot import Robot, RobotAction
+from project.renderer import Renderer
 
 
 class Logger:
@@ -82,7 +82,7 @@ class DQN:
             action_space=None,
             max_buffer=50000
     ) -> None:
-        self.action_space = list(range(len(RobotAction)))  # Actions from 0 to 6
+        self.action_space = list(range(len(RobotAction)))
         self.epsilon = epsilon
         self.gamma = gamma
         self.buffer_replay = deque(maxlen=max_buffer)
@@ -183,7 +183,7 @@ def train_agent(env, agent, episodes, update_target_freq, logger=None, renderer=
         terminated = False
         steps = 0
 
-        while not terminated  and steps < 10000:
+        while not terminated  and steps < 1000:
             steps +=1
             
             # Select actions for each robot

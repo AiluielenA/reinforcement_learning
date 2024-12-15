@@ -153,7 +153,7 @@ class Environment(gym.Env):
                 
                 # Check for obstacle collision
                 if collision:
-                    reward -= 3  # Penalize obstacle collision and remain on the same state
+                    reward -= 20  # Penalize obstacle collision and remain on the same state
                     print(f"Robot {i}: Invalid move (obstacle collision), Position={robot.position}, Action={action}, Targe{collision}")
                     continue  # Skip further processing for this robot's action to prioritize penalty over other moves
                 else:
@@ -168,14 +168,14 @@ class Environment(gym.Env):
                         if robot.position == package.position and not package.picked:
                             robot.has_package = True
                             package.picked = True
-                            reward += 20  # Reward for picking up a package
+                            reward += 30  # Reward for picking up a package
                             break  # Stop checking once the package is picked   
                         elif robot.position == package.position and package.picked:
                             reward -= 10  # Penalize trying to pick an unavailable package        
 
             elif action == RobotAction.DEPOSIT:
                 if not robot.has_package:
-                    reward -= 5  # Penalize trying to deposit without a package
+                    reward -= 10  # Penalize trying to deposit without a package
                 else:
                     # Check for depositing up a package
                     for target in self.targets:

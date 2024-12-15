@@ -1,8 +1,6 @@
 import random
 from enum import Enum
 
-
-
 class RobotAction(Enum):
     LEFT = 0
     DOWN = 1
@@ -34,8 +32,6 @@ class Robot:
             if self.position not in occupied_positions:
                 return self.position
             
-
-    # move() needs different logic to control terminate flag in the env.step()
     def move(self, action: RobotAction, obstacle_positions):
         
         print(f"Action received: {action}")
@@ -79,9 +75,6 @@ class Robot:
             else:
                 self.position[0] = dummypos
                 return False
-            
-        # if not collision:
-        #     self.energy -= 1  # Consume energy for valid move
         
         print(f"Updated position: {self.position}")
         return False
