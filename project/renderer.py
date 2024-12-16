@@ -4,8 +4,8 @@ import sys
 from os import path
 import random
 from environment_class import Environment
-from project.robot import Robot, RobotAction
-from project.obstacle import Obstacle
+from robot import Robot, RobotAction
+from obstacle import Obstacle
 from game_logger import GameLogger
 
 class Renderer:

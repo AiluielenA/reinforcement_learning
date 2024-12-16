@@ -1,18 +1,16 @@
-import gymnasium as gym
-from tensorflow.keras import models, layers, optimizers
+from tensorflow.keras import layers, optimizers
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
-import copy
 import random
 from collections import deque
 import os
 from time import strftime
 import csv
 from environment_class import Environment
-from project.robot import Robot, RobotAction
-from project.renderer import Renderer
-
+from robot import RobotAction
+from renderer import Renderer
+import time
 
 class Logger:
     def __init__(self):
@@ -25,6 +23,7 @@ class Logger:
         self.transitions_log_path = os.path.join(self.log_dir, "transitions.csv")
         self.evaluation_log_path = os.path.join(self.log_dir, "evaluation_rewards.csv")
         self.model_save_path = os.path.join(self.log_dir, "trained_model.keras")
+        self.loss_log_path = os.path.join(self.log_dir, "loss.csv")
 
         # Initialize the CSV log files
         with open(self.rewards_log_path, mode='w', newline='') as file:
@@ -38,6 +37,15 @@ class Logger:
         with open(self.evaluation_log_path, mode='w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(["episode", "reward"])
+
+        with open(self.loss_log_path, mode='w', newline='') as file:  # Initialize the loss log
+            writer = csv.writer(file)
+            writer.writerow(["step", "loss"])
+
+    def log_loss(self, step, loss):
+        with open(self.loss_log_path, mode='a', newline='') as file:  # Append loss data
+            writer = csv.writer(file)
+            writer.writerow([step, loss])
 
     def log_reward(self, episode, reward):
         with open(self.rewards_log_path, mode='a', newline='') as file:
@@ -80,7 +88,7 @@ class DQN:
             epsilon=None,
             gamma=None,
             action_space=None,
-            max_buffer=50000
+            max_buffer=30000
     ) -> None:
         self.action_space = list(range(len(RobotAction)))
         self.epsilon = epsilon
@@ -100,10 +108,8 @@ class DQN:
 
     def select_best_action(self, state, num_robots):
         
-        print("state", state)
         # Predict Q-values for all actions
         q_values = self.main_model.predict(state[np.newaxis], verbose=0)[0]
-        print("Predicted Q-values:", q_values)
         
         # Reshape Q-values: each robot has its own set of Q-values
         num_actions_per_robot = len(RobotAction)
@@ -115,7 +121,6 @@ class DQN:
 
         # Select the action with the highest Q-value for each robot
         actions = [np.argmax(q_values_robot) for q_values_robot in q_values_per_robot]
-        print("Selected actions:", actions)
         
         return actions      
 
@@ -126,7 +131,7 @@ class DQN:
         indices = np.random.choice(len(self.buffer_replay), size=batch_size)
         return [self.buffer_replay[idx] for idx in indices]
 
-    def train(self, batch_size=32):
+    def train(self, batch_size=32, logger=None, step=0):
         if len(self.buffer_replay) < batch_size:
             return
         
@@ -150,6 +155,9 @@ class DQN:
         value_grads = tape.gradient(loss, self.main_model.trainable_variables)
         self.optimizer.apply_gradients(zip(value_grads, self.main_model.trainable_variables))
 
+        if logger:
+            logger.log_loss(step, float(loss.numpy()))
+
     def update_target_model(self, weights=None):
         if weights is not None:
             self.target_model.set_weights(weights)
@@ -171,20 +179,23 @@ class CreateNetwork(tf.keras.Model):
         return x
     
 
-
-
 def train_agent(env, agent, episodes, update_target_freq, logger=None, renderer=None):
     rewards = []
+
+    monitoring_log_path = os.path.join(logger.log_dir, "training_progress.txt")
+    with open(monitoring_log_path, "w") as monitor_file:
+        monitor_file.write("Episode, Total Reward, Epsilon, Steps\n")  # Write headers
+
 
     for episode in range(episodes):
         state, _ = env.reset()
         state = env.flatten_state(state)
         total_reward = 0
         terminated = False
-        steps = 0
+        step = 0
 
-        while not terminated  and steps < 1000:
-            steps +=1
+        while not terminated: #  and steps < 1000:
+            step +=1
             
             # Select actions for each robot
             action = agent.select_action(state)
@@ -195,7 +206,7 @@ def train_agent(env, agent, episodes, update_target_freq, logger=None, renderer=
             
             # Store the transition and train
             agent.store_transition(state, action, next_state, reward, done, truncated)
-            agent.train(batch_size=32)
+            agent.train(batch_size=32, logger=logger, step=step) 
             
             # Update state and accumulate rewards
             state = next_state
@@ -203,17 +214,22 @@ def train_agent(env, agent, episodes, update_target_freq, logger=None, renderer=
             
             # Render the environment
             if renderer:
+                start_time = time.time()
                 renderer.render()
+                print(f"Render time: {time.time() - start_time:.4f}s")
             
             terminated = done
+            time.sleep(0.01)  # Add a small delay to avoid overloading the CPU
         
-        # Log rewards and update target network periodically
         logger.log_reward(episode, total_reward)
         if episode % update_target_freq == 0:
-            agent.update_target_model()        
-            
+            agent.update_target_model()   
+
+        with open(monitoring_log_path, "a") as monitor_file:
+            monitor_file.write(f"{episode + 1}, {total_reward:.2f}, {agent.epsilon.get_value():.2f}, {step}\n")
+     
         rewards.append(total_reward)
-        print(f"Episode {episode + 1}/{episodes}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon.get_value():.2f}, Steps: {steps}")
+        print(f"Episode {episode + 1}/{episodes}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon.get_value():.2f}, Steps: {step}")
     print(f'AVG reward: {np.mean(rewards)}')
     return rewards
 
@@ -225,25 +241,20 @@ def evaluate_agent(env, agent, episodes, logger=None, renderer=None):
         state, _ = env.reset()
         total_reward = 0
         terminated = False
-        steps = 0
         
         while not terminated:
             actions = [agent.select_best_action(state) for _ in env.robots]
-            # action = agent.select_best_action(state)
             next_state, reward, done, truncated, info = env.step(actions)
             next_state = env.flatten_state(next_state)
             
             state = next_state
             total_reward += reward
             
-            # Render the environment
             if renderer:
                 renderer.render()
             
             terminated = done
-                
-            
-        # Log evaluation rewards
+                            
             logger.log_eval_reward(episode, total_reward)
             rewards.append(total_reward)
             print(f"Episode {episode + 1}/{episodes}, Total Reward: {total_reward:.2f}")
@@ -261,38 +272,53 @@ def plot_rewards(root_folder, rewards, title, save_fig=False):
     if save_fig:
         plt.savefig(root_folder + "/" + title + '_' + strftime("%Y_%m_%d_%H_%M_%S") +'_' + '.png')
     plt.legend()
+    plt.show()  
+
+def plot_loss(log_dir):
+    loss_file = os.path.join(log_dir, "loss.csv")
+    steps, losses = [], []
+
+    # Read loss data from the CSV file
+    with open(loss_file, "r") as file:
+        reader = csv.reader(file)
+        next(reader)  # Skip header
+        for row in reader:
+            steps.append(int(row[0]))
+            losses.append(float(row[1]))
+
+    plt.plot(steps, losses, label='Loss')
+    plt.xlabel('Training Step')
+    plt.ylabel('Loss')
+    plt.title('Training Loss Over Time')
+    plt.legend()
     plt.show()
-    
+  
 
 # start training 
 if __name__ == "__main__":
-    # env = gym.make('LunarLander-v3')
     env = Environment(grid_rows=7, grid_cols=7, num_robots=2, num_packages=2, num_targets=2, num_obstacles=4, num_charger=2)
-    renderer = Renderer(env, cell_size=64, fps=10)
-    
+    renderer = Renderer(env, cell_size=64, fps=5)
+
     # Define state and action sizes
     state_dim = env.flatten_state(env._get_observation()).shape[0]
     action_dim = len(RobotAction) * 2
 
-    # state_dim = env.observation_space.shape[0]
-    # action_dim = env.action_space.n
-    
     # Create DQN and supporting components
     main_network = CreateNetwork(action_dim)
     target_network = CreateNetwork(action_dim)
     
     # Ensure both models are built and initialized
-    dummy_input = tf.zeros((1, state_dim))  # Dummy input with state dimension
-    main_network(dummy_input)
-    target_network(dummy_input)
+    state_input = tf.zeros((1, state_dim))  
+    main_network(state_input)
+    target_network(state_input)
     
-    epsilon_schedule = ExponentialDecay(initial_epsilon=1.0, decay_rate=0.995, min_epsilon=0.01)
+    epsilon_schedule = ExponentialDecay(initial_epsilon=1.0, decay_rate=0.99, min_epsilon=0.01)
 
     agent = DQN(
         main_model=main_network,
         target_model=target_network,
         epsilon=epsilon_schedule,
-        gamma=0.99,
+        gamma=0.9,
         action_space=list(range(len(RobotAction)))
     )
     logger = Logger()
@@ -303,6 +329,9 @@ if __name__ == "__main__":
 
     training_rewards = train_agent(env, agent, training_episodes, update_target_freq, logger, renderer)
     plot_rewards(logger.log_dir, training_rewards, "Training Rewards", True)
+
+
+    plot_loss(logger.log_dir)
 
     # Evaluate the agent
     evaluation_episodes = 100
