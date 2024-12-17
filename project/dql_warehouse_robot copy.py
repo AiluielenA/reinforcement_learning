@@ -88,7 +88,7 @@ class DQN:
             epsilon=None,
             gamma=None,
             action_space=None,
-            max_buffer=1000
+            max_buffer=30000
     ) -> None:
         self.action_space = list(range(len(RobotAction)))
         self.epsilon = epsilon
@@ -243,7 +243,7 @@ def evaluate_agent(env, agent, episodes, logger=None, renderer=None):
         terminated = False
         
         while not terminated:
-            actions = [agent.select_best_action(state,2) for _ in env.robots]
+            actions = [agent.select_best_action(state) for _ in env.robots]
             next_state, reward, done, truncated, info = env.step(actions)
             next_state = env.flatten_state(next_state)
             
@@ -296,7 +296,7 @@ def plot_loss(log_dir):
 
 # start training 
 if __name__ == "__main__":
-    env = Environment(grid_rows=7, grid_cols=7, num_robots=2, num_packages=2, num_targets=2, num_obstacles=4, num_charger=2)
+    env = Environment(grid_rows=14, grid_cols=14, num_robots=2, num_packages=4, num_targets=4, num_obstacles=8, num_charger=4)
     renderer = Renderer(env, cell_size=64, fps=5)
 
     # Define state and action sizes
@@ -324,7 +324,7 @@ if __name__ == "__main__":
     logger = Logger()
     
     # Training parameters
-    training_episodes = 200
+    training_episodes = 600
     update_target_freq = 20
 
     training_rewards = train_agent(env, agent, training_episodes, update_target_freq, logger, renderer)

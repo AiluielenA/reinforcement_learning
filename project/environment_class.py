@@ -1,8 +1,8 @@
-from project.robot import Robot, RobotAction
-from project.package import Package
-from project.target import Target
-from project.obstacle import Obstacle
-from charger_class import Charger
+from robot import Robot, RobotAction
+from package import Package
+from target import Target
+from obstacle import Obstacle
+from charger import Charger
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
@@ -90,12 +90,14 @@ class Environment(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) 
+        
         # Reset robots, packages, targets
         self.initialize_environment()
         
         self.steps_taken = 0  # Initialize step counter
         
         info = {}
+        
         # Construct the observation state:
         obs = self._get_observation()
         
@@ -142,10 +144,10 @@ class Environment(gym.Env):
                         if not charger.occupied:
                             robot.recharge()
                             charger.occupied = True
-                            reward += 20 
+                            reward += 30 
                             break  # Only one robot can use a charger
                         else:
-                            reward -= 10  # Penalize charging on an already occupied target 
+                            reward -= 5  # Penalize charging on an already occupied target 
 
             elif action in [RobotAction.LEFT, RobotAction.RIGHT, RobotAction.UP, RobotAction.DOWN]:
                 # new potential position
@@ -161,7 +163,7 @@ class Environment(gym.Env):
 
             elif action == RobotAction.PICK:
                 if robot.has_package:
-                    reward -= 10  # Penalize trying to pick while holding a package  
+                    reward -= 1  # Penalize trying to pick while holding a package  
                 else:          
                     # Check for picking up a package (First Come First Served policy) 
                     for package in self.packages:
@@ -171,11 +173,11 @@ class Environment(gym.Env):
                             reward += 30  # Reward for picking up a package
                             break  # Stop checking once the package is picked   
                         elif robot.position == package.position and package.picked:
-                            reward -= 10  # Penalize trying to pick an unavailable package        
+                            reward -= 1  # Penalize trying to pick an unavailable package        
 
             elif action == RobotAction.DEPOSIT:
                 if not robot.has_package:
-                    reward -= 10  # Penalize trying to deposit without a package
+                    reward -= 1  # Penalize trying to deposit without a package
                 else:
                     # Check for depositing up a package
                     for target in self.targets:
@@ -192,19 +194,17 @@ class Environment(gym.Env):
                                 self.terminated = all(target.occupied for target in self.targets) # Terminate once all packages are delivered
                                 break  # Only one robot can deposit
                             else:
-                                reward -= 20  # Penalize depositing on an already occupied target
-
+                                reward -= 5  # Penalize depositing on an already occupied target
 
         # Track robot positions to detect collisions
         if len(robot_position) != len(set(tuple(pos) for pos in robot_position)):
             reward -= 100  # Penalize collisions
 
-
         # Penalize robots for being in close proximity to each other
         for i, robot1 in enumerate(self.robots):
             for j, robot2 in enumerate(self.robots):
                 if i != j and self._manhattan_distance(robot1.position, robot2.position) <= proximity_threshold_close:
-                    reward -= 10  
+                    reward -= 3  
     
         for robot in self.robots:
             if not robot.has_package:
@@ -229,7 +229,6 @@ class Environment(gym.Env):
             truncated = True
                     
         obs = self._get_observation()
-        # obs = self.flatten_state(self._get_observation())
         
         done = self.terminated
         
@@ -243,18 +242,15 @@ class Environment(gym.Env):
         elif distance < far_thresh:
             return 10  # Moderate reward for being near
         else:
-            return -10  # Penalty for being far away
+            return 3  # Penalty for being far away
 
     def render(self, mode='human'):
         """Render the environment grid."""
-        # if self.render_mode != 'human':
-        #     return
         grid = [["." for _ in range(self.grid_cols)] for _ in range(self.grid_rows)]
 
         i=1
         for robot in self.robots:
             r, c = robot.position
-            # grid[r][c] = "R"
             grid[r][c] = f"R{i}"
             i=i+1
 
@@ -322,7 +318,6 @@ if __name__ == "__main__":
 
 
     while(not terminated):
-        # print(f"\nStep {step + 1}")
         rand_action = env.action_space.sample()
         print(f"Random Actions: {rand_action}")
 
